@@ -31,6 +31,11 @@ def read_data(path):
     label = np.array(hf.get('label'))
     return data, label
 
+def down_upscale(image, scale):
+  res = scipy.ndimage.interpolation.zoom(image, 1.0/scale, prefilter=False)
+  res = scipy.ndimage.interpolation.zoom(res, scale, prefilter=False)
+  return res
+
 def preprocess(path, scale=3):
   """
   Preprocess single image file 
@@ -49,9 +54,8 @@ def preprocess(path, scale=3):
   # Must be normalized
   image = image / 255.
   label_ = label_ / 255.
-
-  input_ = scipy.ndimage.interpolation.zoom(label_, .5, prefilter=False)
-  input_ = scipy.ndimage.interpolation.zoom(input_, 2, prefilter=False)
+  
+  input_ = down_upscale(label_, scale)
 
   return input_, label_
 
@@ -67,7 +71,7 @@ def prepare_data(sess, dataset):
     data_dir = os.path.join(os.getcwd(), dataset)
     data = glob.glob(os.path.join(data_dir, "*.bmp"))
   else:
-    data_dir = os.path.join(os.sep, (os.path.join(os.getcwd(), dataset)), "Set5")
+    data_dir = os.path.join(os.sep, os.path.join(os.getcwd(), dataset), "Set5")
     data = glob.glob(os.path.join(data_dir, "*.bmp"))
 
   return data
@@ -125,6 +129,7 @@ def input_setup(sess, config):
     data = prepare_data(sess, dataset="Train")
   else:
     data = prepare_data(sess, dataset="Test")
+    print data
 
   sub_input_sequence = []
   sub_label_sequence = []
@@ -152,7 +157,16 @@ def input_setup(sess, config):
           sub_label_sequence.append(sub_label)
 
   else:
-    input_, label_ = preprocess(data[2], config.scale)
+
+    input_data = None
+    for item in data:
+      if 'butterfly' in item: 
+        input_data = item
+        break
+
+    input_, label_ = preprocess(input_data, config.scale)
+    print input_data
+    print input_.shape
 
     if len(input_.shape) == 3:
       h, w, _ = input_.shape

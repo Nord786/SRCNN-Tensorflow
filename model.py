@@ -2,6 +2,7 @@ from utils import (
   read_data, 
   input_setup, 
   imsave,
+  down_upscale,
   merge
 )
 
@@ -108,8 +109,18 @@ class SRCNN(object):
 
       result = self.pred.eval({self.images: train_data, self.labels: train_label})
 
-      merge(result, [nx, ny])
-      imsave(merge, os.path.join(os.getcwd(), config.sample_dir))
+      print "Train data shape", train_data.shape
+      print "Train label shape", train_label.shape
+      print "Result shape", result.shape
+      print "nx ny", nx, ny
+
+      image = merge(result, [nx, ny])[:,:,0]
+      original_image = merge(train_label, [nx, ny])[:,:,0]
+
+
+      imsave(original_image, os.path.join(os.getcwd(), config.sample_dir) + "/original.bmp")
+      imsave(down_upscale(original_image, scale=config.scale), os.path.join(os.getcwd(), config.sample_dir) + "/interpolation.bmp")
+      imsave(image, os.path.join(os.getcwd(), config.sample_dir) + "/srcnn.bmp")
 
   def model(self):
     conv1 = tf.nn.relu(tf.nn.conv2d(self.images, self.weights['w1'], strides=[1,1,1,1], padding='VALID') + self.biases['b1'])
