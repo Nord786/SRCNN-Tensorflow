@@ -31,7 +31,9 @@ def main(_):
   if not os.path.exists(FLAGS.sample_dir):
     os.makedirs(FLAGS.sample_dir)
 
-  with tf.Session() as sess:
+  config = tf.ConfigProto()
+  config.gpu_options.allow_growth = True
+  with tf.Session(config=config) as sess:
     srcnn = SRCNN(sess, 
                   image_size=FLAGS.image_size, 
                   label_size=FLAGS.label_size, 
