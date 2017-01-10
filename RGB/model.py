@@ -46,14 +46,14 @@ class SRCNN(object):
     self.labels = tf.placeholder(tf.float32, [None, self.label_size, self.label_size, self.c_dim], name='labels')
     
     self.weights = {
-      'w1': tf.Variable(tf.random_normal([9, 9, 1, 64], stddev=1e-3), name='w1'),
+      'w1': tf.Variable(tf.random_normal([9, 9, self.c_dim, 64], stddev=1e-3), name='w1'),
       'w2': tf.Variable(tf.random_normal([1, 1, 64, 32], stddev=1e-3), name='w2'),
-      'w3': tf.Variable(tf.random_normal([5, 5, 32, 1], stddev=1e-3), name='w3')
+      'w3': tf.Variable(tf.random_normal([5, 5, 32, self.c_dim], stddev=1e-3), name='w3')
     }
     self.biases = {
       'b1': tf.Variable(tf.zeros([64]), name='b1'),
       'b2': tf.Variable(tf.zeros([32]), name='b2'),
-      'b3': tf.Variable(tf.zeros([1]), name='b3')
+      'b3': tf.Variable(tf.zeros([self.c_dim]), name='b3')
     }
 
     self.pred = self.model()
@@ -75,6 +75,7 @@ class SRCNN(object):
       data_dir = os.path.join('./{}'.format(config.checkpoint_dir), "test.h5")
 
     train_data, train_label = read_data(data_dir)
+    print train_data.shape
 
     # Stochastic gradient descent with the standard backpropagation
     self.train_op = tf.train.GradientDescentOptimizer(config.learning_rate).minimize(self.loss)
@@ -112,15 +113,19 @@ class SRCNN(object):
     else:
       print("Testing...")
 
-      result = self.pred.eval({self.images: train_data, self.labels: train_label})
-
       print "Train data shape", train_data.shape
       print "Train label shape", train_label.shape
+
+      result = self.pred.eval({self.images: train_data, self.labels: train_label})
+
       print "Result shape", result.shape
       print "nx ny", nx, ny
 
-      image = merge(result, [nx, ny])[:,:,0]
-      original_image = merge(train_label, [nx, ny])[:,:,0]
+      image = merge(result, [nx, ny])
+      if image.shape[2] == 1: image = image[:,:,0]
+
+      original_image = merge(train_label, [nx, ny])
+      if original_image.shape[2] == 1: original_image = original_image[:,:,0]
 
 
       imsave(original_image, os.path.join(os.getcwd(), config.sample_dir) + "/original.bmp")
