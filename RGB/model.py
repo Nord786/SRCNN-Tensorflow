@@ -2,6 +2,7 @@ from utils import (
   read_data, 
   input_setup, 
   imsave,
+  modcrop,
   down_upscale,
   merge
 )
@@ -129,7 +130,7 @@ class SRCNN(object):
 
 
       imsave(original_image, os.path.join(os.getcwd(), config.sample_dir) + "/original.bmp")
-      imsave(down_upscale(original_image, scale=config.scale), os.path.join(os.getcwd(), config.sample_dir) + "/interpolation.bmp")
+      imsave(down_upscale(modcrop(original_image, config.scale), scale=config.scale), os.path.join(os.getcwd(), config.sample_dir) + "/interpolation.bmp")
       imsave(image, os.path.join(os.getcwd(), config.sample_dir) + "/srcnn.bmp")
 
 

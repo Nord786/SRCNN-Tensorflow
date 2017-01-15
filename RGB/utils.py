@@ -15,6 +15,8 @@ import numpy as np
 
 import tensorflow as tf
 
+import copy
+
 FLAGS = tf.app.flags.FLAGS
 
 def read_data(path):
@@ -32,8 +34,12 @@ def read_data(path):
     return data, label
 
 def down_upscale(image, scale):
-  res = scipy.ndimage.interpolation.zoom(image, 1.0/scale, prefilter=False)
-  res = scipy.ndimage.interpolation.zoom(res, scale, prefilter=False)
+  res = copy.deepcopy(image)
+  for channel in range(res.shape[2]):
+    tmp = res[:,:,channel]
+    tmp = scipy.ndimage.interpolation.zoom(tmp, 1.0/scale, prefilter=False)
+    tmp = scipy.ndimage.interpolation.zoom(tmp, scale, prefilter=False)
+    res[:,:,channel] = tmp
   return res
 
 def down_upscale_new(image, scale):
@@ -154,9 +160,10 @@ def input_setup(sess, config):
           sub_input = input_[x:x+config.image_size, y:y+config.image_size] # [33 x 33]
           sub_label = label_[x+padding:x+padding+config.label_size, y+padding:y+padding+config.label_size] # [21 x 21]
 
-          # Make channel value
-          sub_input = sub_input.reshape([config.image_size, config.image_size, config.c_dim])  
-          sub_label = sub_label.reshape([config.label_size, config.label_size, config.c_dim])
+          if config.c_dim == 1:
+            # Make channel value
+            sub_input = sub_input.reshape([config.image_size, config.image_size, config.c_dim])  
+            sub_label = sub_label.reshape([config.label_size, config.label_size, config.c_dim])
 
           sub_input_sequence.append(sub_input)
           sub_label_sequence.append(sub_label)
