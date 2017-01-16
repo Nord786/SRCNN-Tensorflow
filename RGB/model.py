@@ -123,11 +123,7 @@ class SRCNN(object):
       print "nx ny", nx, ny
 
       image = merge(result, [nx, ny])
-      if image.shape[2] == 1: image = image[:,:,0]
-
       original_image = merge(train_label, [nx, ny])
-      if original_image.shape[2] == 1: original_image = original_image[:,:,0]
-
 
       imsave(original_image, os.path.join(os.getcwd(), config.sample_dir) + "/original.bmp")
       imsave(down_upscale(modcrop(original_image, config.scale), scale=config.scale), os.path.join(os.getcwd(), config.sample_dir) + "/interpolation.bmp")

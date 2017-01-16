@@ -47,7 +47,7 @@ def down_upscale_new(image, scale):
   res = scipy.misc.imresize(res, 1.0*scale, interp='bicubic')
   return res
 
-def preprocess(path, scale=3, is_grayscale=True):
+def preprocess(path, scale=3, is_grayscale=True, is_YCbCr=True):
   """
   Preprocess single image file 
     (1) Read original image as YCbCr format (and grayscale as default)
@@ -59,7 +59,7 @@ def preprocess(path, scale=3, is_grayscale=True):
     input_: image applied bicubic interpolation (low-resolution)
     label_: image with original resolution (high-resolution)
   """
-  image = imread(path, is_grayscale=is_grayscale)
+  image = imread(path, is_grayscale=is_grayscale, is_YCbCr=is_YCbCr)
   label_ = modcrop(image, scale)
 
   # Must be normalized
@@ -87,29 +87,33 @@ def prepare_data(sess, dataset):
 
   return data
 
-def make_data(sess, data, label):
+def make_data(checkpoint_dir, data, label):
   """
   Make input data as h5 file format
   Depending on 'is_train' (flag value), savepath would be changed.
   """
   if FLAGS.is_train:
-    savepath = os.path.join(os.getcwd(), 'checkpoint/train.h5')
+    savepath = os.path.join(os.getcwd(), checkpoint_dir, 'train.h5')
   else:
-    savepath = os.path.join(os.getcwd(), 'checkpoint/test.h5')
+    savepath = os.path.join(os.getcwd(), checkpoint_dir, 'test.h5')
 
   with h5py.File(savepath, 'w') as hf:
     hf.create_dataset('data', data=data)
     hf.create_dataset('label', data=label)
 
-def imread(path, is_grayscale=True):
+def imread(path, is_grayscale=True, is_YCbCr=True):
   """
   Read image using its path.
   Default value is gray-scale, and image is read by YCbCr format as the paper said.
   """
   if is_grayscale:
-    return scipy.misc.imread(path, flatten=True, mode='YCbCr').astype(np.float)
+    res = scipy.misc.imread(path, flatten=True, mode='YCbCr' if is_YCbCr else 'RGB').astype(np.float)
+    #Make one channel image
+    res = res.reshape(res.shape[0], res.shape[1], 1)
   else:
-    return scipy.misc.imread(path, mode='YCbCr').astype(np.float)
+    res = scipy.misc.imread(path, mode='YCbCr' if is_YCbCr else 'RGB').astype(np.float)
+
+  return res
 
 def modcrop(image, scale=3):
   """
@@ -160,11 +164,6 @@ def input_setup(sess, config):
           sub_input = input_[x:x+config.image_size, y:y+config.image_size] # [33 x 33]
           sub_label = label_[x+padding:x+padding+config.label_size, y+padding:y+padding+config.label_size] # [21 x 21]
 
-          if config.c_dim == 1:
-            # Make channel value
-            sub_input = sub_input.reshape([config.image_size, config.image_size, config.c_dim])  
-            sub_label = sub_label.reshape([config.label_size, config.label_size, config.c_dim])
-
           sub_input_sequence.append(sub_input)
           sub_label_sequence.append(sub_label)
 
@@ -176,7 +175,7 @@ def input_setup(sess, config):
         input_data = item
         break
 
-    input_, label_ = preprocess(input_data, config.scale, config.c_dim == 1)
+    input_, label_ = preprocess(input_data, config.scale, config.c_dim == 1, config.is_YCbCr)
     print input_data
     print input_.shape
 
@@ -208,13 +207,16 @@ def input_setup(sess, config):
   arrdata = np.asarray(sub_input_sequence) # [?, 33, 33, 1]
   arrlabel = np.asarray(sub_label_sequence) # [?, 21, 21, 1]
 
-  make_data(sess, arrdata, arrlabel)
+  make_data(config.checkpoint_dir, arrdata, arrlabel)
 
   if not config.is_train:
     return nx, ny
 
-def imsave(image, path):
-  if len(image.shape) == 3: image = scipy.misc.toimage(image, mode='YCbCr').convert('RGB')
+def imsave(image, path, is_YCbCr=True):
+  if image.shape[2] == 3: image = scipy.misc.toimage(image, mode='YCbCr' if is_YCbCr else 'RGB').convert('RGB')
+  elif image.shape[2] == 1: image = image[:,:,0]
+  else: image = None
+
   return scipy.misc.imsave(path, image)
 
 def merge(images, size):
