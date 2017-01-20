@@ -124,10 +124,11 @@ class SRCNN(object):
 
       image = merge(result, [nx, ny])
       original_image = merge(train_label, [nx, ny])
+      interpolation = down_upscale(modcrop(original_image, config.scale), scale=config.scale) 
 
-      imsave(original_image, os.path.join(os.getcwd(), config.sample_dir) + "/original.bmp")
-      imsave(down_upscale(modcrop(original_image, config.scale), scale=config.scale), os.path.join(os.getcwd(), config.sample_dir) + "/interpolation.bmp")
-      imsave(image, os.path.join(os.getcwd(), config.sample_dir) + "/srcnn.bmp")
+      imsave(original_image, os.path.join(os.getcwd(), config.sample_dir, "original.bmp"), config.is_YCbCr )
+      imsave(interpolation, os.path.join(os.getcwd(), config.sample_dir, "interpolation.bmp"), config.is_YCbCr )
+      imsave(image, os.path.join(os.getcwd(), config.sample_dir, "srcnn.bmp"), config.is_YCbCr)
 
 
   def save(self, checkpoint_dir, step):

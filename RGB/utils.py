@@ -47,7 +47,7 @@ def down_upscale_new(image, scale):
   res = scipy.misc.imresize(res, 1.0*scale, interp='bicubic')
   return res
 
-def preprocess(path, scale=3, is_grayscale=True, is_YCbCr=True):
+def preprocess(path, scale, is_grayscale, is_YCbCr):
   """
   Preprocess single image file 
     (1) Read original image as YCbCr format (and grayscale as default)
@@ -101,7 +101,7 @@ def make_data(checkpoint_dir, data, label):
     hf.create_dataset('data', data=data)
     hf.create_dataset('label', data=label)
 
-def imread(path, is_grayscale=True, is_YCbCr=True):
+def imread(path, is_grayscale, is_YCbCr):
   """
   Read image using its path.
   Default value is gray-scale, and image is read by YCbCr format as the paper said.
@@ -152,7 +152,7 @@ def input_setup(sess, config):
 
   if config.is_train:
     for i in xrange(len(data)):
-      input_, label_ = preprocess(data[i], config.scale, config.c_dim == 1)
+      input_, label_ = preprocess(data[i], config.scale, config.c_dim == 1, config.is_YCbCr)
 
       if len(input_.shape) == 3:
         h, w, _ = input_.shape
@@ -212,7 +212,7 @@ def input_setup(sess, config):
   if not config.is_train:
     return nx, ny
 
-def imsave(image, path, is_YCbCr=True):
+def imsave(image, path, is_YCbCr):
   if image.shape[2] == 3: image = scipy.misc.toimage(image, mode='YCbCr' if is_YCbCr else 'RGB').convert('RGB')
   elif image.shape[2] == 1: image = image[:,:,0]
   else: image = None
