@@ -2,6 +2,7 @@ from utils import (
   read_data, 
   input_setup, 
   imsave,
+  modcrop,
   down_upscale,
   merge
 )
@@ -46,14 +47,14 @@ class SRCNN(object):
     self.labels = tf.placeholder(tf.float32, [None, self.label_size, self.label_size, self.c_dim], name='labels')
     
     self.weights = {
-      'w1': tf.Variable(tf.random_normal([9, 9, 1, 64], stddev=1e-3), name='w1'),
+      'w1': tf.Variable(tf.random_normal([9, 9, self.c_dim, 64], stddev=1e-3), name='w1'),
       'w2': tf.Variable(tf.random_normal([1, 1, 64, 32], stddev=1e-3), name='w2'),
-      'w3': tf.Variable(tf.random_normal([5, 5, 32, 1], stddev=1e-3), name='w3')
+      'w3': tf.Variable(tf.random_normal([5, 5, 32, self.c_dim], stddev=1e-3), name='w3')
     }
     self.biases = {
       'b1': tf.Variable(tf.zeros([64]), name='b1'),
       'b2': tf.Variable(tf.zeros([32]), name='b2'),
-      'b3': tf.Variable(tf.zeros([1]), name='b3')
+      'b3': tf.Variable(tf.zeros([self.c_dim]), name='b3')
     }
 
     self.pred = self.model()
@@ -112,20 +113,21 @@ class SRCNN(object):
     else:
       print("Testing...")
 
-      result = self.pred.eval({self.images: train_data, self.labels: train_label})
-
       print "Train data shape", train_data.shape
       print "Train label shape", train_label.shape
+
+      result = self.pred.eval({self.images: train_data, self.labels: train_label})
+
       print "Result shape", result.shape
       print "nx ny", nx, ny
 
-      image = merge(result, [nx, ny])[:,:,0]
-      original_image = merge(train_label, [nx, ny])[:,:,0]
+      image = merge(result, [nx, ny])
+      original_image = merge(train_label, [nx, ny])
+      interpolation = down_upscale(modcrop(original_image, config.scale), scale=config.scale) 
 
-
-      imsave(original_image, os.path.join(os.getcwd(), config.sample_dir) + "/original.bmp")
-      imsave(down_upscale(original_image, scale=config.scale), os.path.join(os.getcwd(), config.sample_dir) + "/interpolation.bmp")
-      imsave(image, os.path.join(os.getcwd(), config.sample_dir) + "/srcnn.bmp")
+      imsave(original_image, os.path.join(os.getcwd(), config.sample_dir, "original.bmp"), config.is_YCbCr )
+      imsave(interpolation, os.path.join(os.getcwd(), config.sample_dir, "interpolation.bmp"), config.is_YCbCr )
+      imsave(image, os.path.join(os.getcwd(), config.sample_dir, "srcnn.bmp"), config.is_YCbCr)
 
 
   def save(self, checkpoint_dir, step):

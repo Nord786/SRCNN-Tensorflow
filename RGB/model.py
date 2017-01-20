@@ -76,7 +76,6 @@ class SRCNN(object):
       data_dir = os.path.join('./{}'.format(config.checkpoint_dir), "test.h5")
 
     train_data, train_label = read_data(data_dir)
-    print train_data.shape
 
     # Stochastic gradient descent with the standard backpropagation
     self.train_op = tf.train.GradientDescentOptimizer(config.learning_rate).minimize(self.loss)
