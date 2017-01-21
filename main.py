@@ -20,33 +20,38 @@ flags.DEFINE_string("checkpoint_dir", "checkpoint", "Name of checkpoint director
 flags.DEFINE_string("sample_dir", "sample", "Name of sample directory [sample]")
 flags.DEFINE_boolean("is_train", True, "True for training, False for testing [True]")
 flags.DEFINE_boolean("is_RGB", False, "True for load images in RGB, False for YCbCr [False]")
-flags.DEFINE_integer("net_size_factor", 1.0, "Factor for scale network layers neurons from default size")
-flags.DEFINE_integer("input_image", None, "Path for input image for upscale")
+flags.DEFINE_integer("net_size_factor", 1, "Factor for scale network layers neurons from default size")
+flags.DEFINE_string("input_image", None, "Path for input image for upscale")
 FLAGS = flags.FLAGS
 
 pp = pprint.PrettyPrinter()
 
+
 def main(_):
-  pp.pprint(flags.FLAGS.__flags)
+    pp.pprint(flags.FLAGS.__flags)
 
-  if not os.path.exists(FLAGS.checkpoint_dir):
-    os.makedirs(FLAGS.checkpoint_dir)
-  if not os.path.exists(FLAGS.sample_dir):
-    os.makedirs(FLAGS.sample_dir)
+    if not os.path.exists(FLAGS.checkpoint_dir):
+        os.makedirs(FLAGS.checkpoint_dir)
+    if not os.path.exists(FLAGS.sample_dir):
+        os.makedirs(FLAGS.sample_dir)
 
-  config = tf.ConfigProto()
-  config.gpu_options.allow_growth = True
-  with tf.Session(config=config) as sess:
-    srcnn = SRCNN(sess, 
-                  image_size=FLAGS.image_size, 
-                  label_size=FLAGS.label_size, 
-                  batch_size=FLAGS.batch_size,
-                  c_dim=FLAGS.c_dim, 
-                  net_size_factor=FLAGS.net_size_factor, 
-                  checkpoint_dir=FLAGS.checkpoint_dir,
-                  sample_dir=FLAGS.sample_dir)
+    config = tf.ConfigProto()
+    config.gpu_options.allow_growth = True
+    with tf.Session(config=config) as sess:
+        srcnn = SRCNN(sess,
+                      image_size=FLAGS.image_size,
+                      label_size=FLAGS.label_size,
+                      batch_size=FLAGS.batch_size,
+                      c_dim=FLAGS.c_dim,
+                      net_size_factor=FLAGS.net_size_factor,
+                      checkpoint_dir=FLAGS.checkpoint_dir,
+                      sample_dir=FLAGS.sample_dir)
 
-    srcnn.train(FLAGS)
-    
+    if FLAGS.input_image:
+        srcnn.scale_image(FLAGS)
+    else:
+        srcnn.train(FLAGS)
+
+
 if __name__ == '__main__':
-  tf.app.run()
+    tf.app.run()
