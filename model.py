@@ -22,6 +22,7 @@ class SRCNN(object):
                label_size=21, 
                batch_size=128,
                c_dim=1, 
+               net_size_factor=1,
                checkpoint_dir=None, 
                sample_dir=None):
 
@@ -29,6 +30,7 @@ class SRCNN(object):
     self.image_size = image_size
     self.label_size = label_size
     self.batch_size = batch_size
+    self.net_size_factor = net_size_factor 
 
     self.c_dim = c_dim
 
@@ -47,13 +49,13 @@ class SRCNN(object):
     self.labels = tf.placeholder(tf.float32, [None, self.label_size, self.label_size, self.c_dim], name='labels')
     
     self.weights = {
-      'w1': tf.Variable(tf.random_normal([9, 9, self.c_dim, 64], stddev=1e-3), name='w1'),
-      'w2': tf.Variable(tf.random_normal([1, 1, 64, 32], stddev=1e-3), name='w2'),
-      'w3': tf.Variable(tf.random_normal([5, 5, 32, self.c_dim], stddev=1e-3), name='w3')
+      'w1': tf.Variable(tf.random_normal([9, 9, self.c_dim, 64 * self.net_size_factor], stddev=1e-3), name='w1'),
+      'w2': tf.Variable(tf.random_normal([1, 1, 64 * self.net_size_factor, 32 * self.net_size_factor], stddev=1e-3), name='w2'),
+      'w3': tf.Variable(tf.random_normal([5, 5, 32 * self.net_size_factor, self.c_dim], stddev=1e-3), name='w3')
     }
     self.biases = {
-      'b1': tf.Variable(tf.zeros([64]), name='b1'),
-      'b2': tf.Variable(tf.zeros([32]), name='b2'),
+      'b1': tf.Variable(tf.zeros([64 * self.net_size_factor]), name='b1'),
+      'b2': tf.Variable(tf.zeros([32 * self.net_size_factor]), name='b2'),
       'b3': tf.Variable(tf.zeros([self.c_dim]), name='b3')
     }
 

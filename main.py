@@ -20,6 +20,8 @@ flags.DEFINE_string("checkpoint_dir", "checkpoint", "Name of checkpoint director
 flags.DEFINE_string("sample_dir", "sample", "Name of sample directory [sample]")
 flags.DEFINE_boolean("is_train", True, "True for training, False for testing [True]")
 flags.DEFINE_boolean("is_RGB", False, "True for load images in RGB, False for YCbCr [False]")
+flags.DEFINE_integer("net_size_factor", 1.0, "Factor for scale network layers neurons from default size")
+flags.DEFINE_integer("input_image", None, "Path for input image for upscale")
 FLAGS = flags.FLAGS
 
 pp = pprint.PrettyPrinter()
@@ -40,6 +42,7 @@ def main(_):
                   label_size=FLAGS.label_size, 
                   batch_size=FLAGS.batch_size,
                   c_dim=FLAGS.c_dim, 
+                  net_size_factor=FLAGS.net_size_factor, 
                   checkpoint_dir=FLAGS.checkpoint_dir,
                   sample_dir=FLAGS.sample_dir)
 
