@@ -17,10 +17,10 @@ This code requires Tensorflow. Also scipy is used instead of Matlab or OpenCV. E
  * Попробывать loss GAN
 
 ## Usage
-For training, `python main.py`
+For training, `python main.py`  
 For training in RGB mode, `python main.py --epoch 100 --c_dim 3 --is_RGB true --checkpoint_dir checkpoint_RGB >> checkpoint_RGB/log 2>&1`
 <br>
-For testing, `python main.py --is_train False --stride 21`
+For testing, `python main.py --is_train False --stride 21`  
 For testing in RGB mode, `python main.py --is_train false --stride 21 --c_dim 3 --is_RGB true --checkpoint_dir checkpoint_RGB`
 
 ## Result
