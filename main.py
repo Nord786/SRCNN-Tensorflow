@@ -19,7 +19,7 @@ flags.DEFINE_integer("stride", 14, "The size of stride to apply input image [14]
 flags.DEFINE_string("checkpoint_dir", "checkpoint", "Name of checkpoint directory [checkpoint]")
 flags.DEFINE_string("sample_dir", "sample", "Name of sample directory [sample]")
 flags.DEFINE_boolean("is_train", True, "True for training, False for testing [True]")
-flags.DEFINE_boolean("is_YCbCr", True, "True for load images in YCbCr, False for RGB [True]")
+flags.DEFINE_boolean("is_RGB", False, "True for load images in RGB, False for YCbCr [False]")
 FLAGS = flags.FLAGS
 
 pp = pprint.PrettyPrinter()

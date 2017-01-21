@@ -47,7 +47,7 @@ def down_upscale_new(image, scale):
   res = scipy.misc.imresize(res, 1.0*scale, interp='bicubic')
   return res
 
-def preprocess(path, scale, is_grayscale, is_YCbCr):
+def preprocess(path, scale, is_grayscale, is_RGB):
   """
   Preprocess single image file 
     (1) Read original image as YCbCr format (and grayscale as default)
@@ -59,7 +59,7 @@ def preprocess(path, scale, is_grayscale, is_YCbCr):
     input_: image applied bicubic interpolation (low-resolution)
     label_: image with original resolution (high-resolution)
   """
-  image = imread(path, is_grayscale=is_grayscale, is_YCbCr=is_YCbCr)
+  image = imread(path, is_grayscale=is_grayscale, is_RGB=is_RGB)
   label_ = modcrop(image, scale)
 
   # Must be normalized
@@ -101,17 +101,17 @@ def make_data(checkpoint_dir, data, label):
     hf.create_dataset('data', data=data)
     hf.create_dataset('label', data=label)
 
-def imread(path, is_grayscale, is_YCbCr):
+def imread(path, is_grayscale, is_RGB):
   """
   Read image using its path.
   Default value is gray-scale, and image is read by YCbCr format as the paper said.
   """
   if is_grayscale:
-    res = scipy.misc.imread(path, flatten=True, mode='YCbCr' if is_YCbCr else 'RGB').astype(np.float)
+    res = scipy.misc.imread(path, flatten=True, mode='RGB' if is_RGB else 'YCbCr').astype(np.float)
     #Make one channel image
     res = res.reshape(res.shape[0], res.shape[1], 1)
   else:
-    res = scipy.misc.imread(path, mode='YCbCr' if is_YCbCr else 'RGB').astype(np.float)
+    res = scipy.misc.imread(path, mode='RGB' if is_RGB else 'YCbCr').astype(np.float)
 
   return res
 
@@ -152,7 +152,7 @@ def input_setup(sess, config):
 
   if config.is_train:
     for i in xrange(len(data)):
-      input_, label_ = preprocess(data[i], config.scale, config.c_dim == 1, config.is_YCbCr)
+      input_, label_ = preprocess(data[i], config.scale, config.c_dim == 1, config.is_RGB)
 
       if len(input_.shape) == 3:
         h, w, _ = input_.shape
@@ -175,7 +175,7 @@ def input_setup(sess, config):
         input_data = item
         break
 
-    input_, label_ = preprocess(input_data, config.scale, config.c_dim == 1, config.is_YCbCr)
+    input_, label_ = preprocess(input_data, config.scale, config.c_dim == 1, config.is_RGB)
     print input_data
     print input_.shape
 
@@ -212,8 +212,8 @@ def input_setup(sess, config):
   if not config.is_train:
     return nx, ny
 
-def imsave(image, path, is_YCbCr):
-  if image.shape[2] == 3: image = scipy.misc.toimage(image, mode='YCbCr' if is_YCbCr else 'RGB').convert('RGB')
+def imsave(image, path, is_RGB):
+  if image.shape[2] == 3: image = scipy.misc.toimage(image, mode='RGB' if is_RGB else 'YCbCr').convert('RGB')
   elif image.shape[2] == 1: image = image[:,:,0]
   else: image = None
 
