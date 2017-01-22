@@ -4,7 +4,8 @@ from utils import (
   imsave,
   modcrop,
   down_upscale,
-  merge
+  merge,
+  read_image
 )
 
 import time
@@ -30,7 +31,7 @@ class SRCNN(object):
     self.image_size = image_size
     self.label_size = label_size
     self.batch_size = batch_size
-    self.net_size_factor = net_size_factor 
+    self.net_size_factor = net_size_factor
 
     self.c_dim = c_dim
 
@@ -131,6 +132,30 @@ class SRCNN(object):
       imsave(interpolation, os.path.join(os.getcwd(), config.sample_dir, "interpolation.bmp"), config.is_RGB )
       imsave(image, os.path.join(os.getcwd(), config.sample_dir, "srcnn.bmp"), config.is_RGB)
 
+  def scale_image(self, config):
+
+    train_data, nx, ny = read_image(config.input_image, config)
+
+    tf.initialize_all_variables().run()
+    
+    start_time = time.time()
+
+    if self.load(self.checkpoint_dir):
+      print(" [*] Load SUCCESS")
+    else:
+      print(" [!] Load failed...")
+
+    print("Testing...")
+
+    print "Train data shape", train_data.shape
+
+    result = self.pred.eval({self.images: train_data})
+
+    print "Result shape", result.shape
+    print "nx ny", nx, ny
+
+    image = merge(result, [nx, ny])
+    imsave(image, os.path.join(os.getcwd(), config.sample_dir, "srcnn.bmp"), config.is_RGB)
 
   def save(self, checkpoint_dir, step):
     model_name = "SRCNN.model"
