@@ -47,10 +47,10 @@ def main(_):
                       checkpoint_dir=FLAGS.checkpoint_dir,
                       sample_dir=FLAGS.sample_dir)
 
-    if FLAGS.input_image:
-        srcnn.scale_image(FLAGS)
-    else:
-        srcnn.train(FLAGS)
+        if FLAGS.input_image:
+            srcnn.scale_image(FLAGS)
+        else:
+            srcnn.train(FLAGS)
 
 
 if __name__ == '__main__':
