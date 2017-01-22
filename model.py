@@ -1,183 +1,185 @@
-from utils import (
-  read_data, 
-  input_setup, 
-  imsave,
-  modcrop,
-  down_upscale,
-  merge,
-  read_image
-)
-
-import time
 import os
-import matplotlib.pyplot as plt
+import time
 
-import numpy as np
 import tensorflow as tf
 
+from utils import (
+    read_data,
+    input_setup,
+    imsave,
+    modcrop,
+    down_upscale,
+    merge,
+    read_image
+)
+
+
 class SRCNN(object):
+    def __init__(self,
+                 sess,
+                 image_size=33,
+                 label_size=21,
+                 batch_size=128,
+                 c_dim=1,
+                 net_size_factor=1,
+                 checkpoint_dir=None,
+                 sample_dir=None):
 
-  def __init__(self, 
-               sess, 
-               image_size=33,
-               label_size=21, 
-               batch_size=128,
-               c_dim=1, 
-               net_size_factor=1,
-               checkpoint_dir=None, 
-               sample_dir=None):
+        self.sess = sess
+        self.image_size = image_size
+        self.label_size = label_size
+        self.batch_size = batch_size
+        self.net_size_factor = net_size_factor
 
-    self.sess = sess
-    self.image_size = image_size
-    self.label_size = label_size
-    self.batch_size = batch_size
-    self.net_size_factor = net_size_factor
+        self.c_dim = c_dim
 
-    self.c_dim = c_dim
+        self.checkpoint_dir = checkpoint_dir
+        self.sample_dir = sample_dir
+        self.build_model()
 
-    self.checkpoint_dir = checkpoint_dir
-    self.sample_dir = sample_dir
-    self.build_model()
+    def model(self):
+        conv1 = tf.nn.relu(
+            tf.nn.conv2d(self.images, self.weights['w1'], strides=[1, 1, 1, 1], padding='VALID') + self.biases['b1'])
+        conv2 = tf.nn.relu(
+            tf.nn.conv2d(conv1, self.weights['w2'], strides=[1, 1, 1, 1], padding='VALID') + self.biases['b2'])
+        conv3 = tf.nn.conv2d(conv2, self.weights['w3'], strides=[1, 1, 1, 1], padding='VALID') + self.biases['b3']
+        return conv3
 
-  def model(self):
-    conv1 = tf.nn.relu(tf.nn.conv2d(self.images, self.weights['w1'], strides=[1,1,1,1], padding='VALID') + self.biases['b1'])
-    conv2 = tf.nn.relu(tf.nn.conv2d(conv1, self.weights['w2'], strides=[1,1,1,1], padding='VALID') + self.biases['b2'])
-    conv3 = tf.nn.conv2d(conv2, self.weights['w3'], strides=[1,1,1,1], padding='VALID') + self.biases['b3']
-    return conv3
+    def build_model(self):
+        self.images = tf.placeholder(tf.float32, [None, self.image_size, self.image_size, self.c_dim], name='images')
+        self.labels = tf.placeholder(tf.float32, [None, self.label_size, self.label_size, self.c_dim], name='labels')
 
-  def build_model(self):
-    self.images = tf.placeholder(tf.float32, [None, self.image_size, self.image_size, self.c_dim], name='images')
-    self.labels = tf.placeholder(tf.float32, [None, self.label_size, self.label_size, self.c_dim], name='labels')
-    
-    self.weights = {
-      'w1': tf.Variable(tf.random_normal([9, 9, self.c_dim, 64 * self.net_size_factor], stddev=1e-3), name='w1'),
-      'w2': tf.Variable(tf.random_normal([1, 1, 64 * self.net_size_factor, 32 * self.net_size_factor], stddev=1e-3), name='w2'),
-      'w3': tf.Variable(tf.random_normal([5, 5, 32 * self.net_size_factor, self.c_dim], stddev=1e-3), name='w3')
-    }
-    self.biases = {
-      'b1': tf.Variable(tf.zeros([64 * self.net_size_factor]), name='b1'),
-      'b2': tf.Variable(tf.zeros([32 * self.net_size_factor]), name='b2'),
-      'b3': tf.Variable(tf.zeros([self.c_dim]), name='b3')
-    }
+        self.weights = {
+            'w1': tf.Variable(tf.random_normal([9, 9, self.c_dim, 64 * self.net_size_factor], stddev=1e-3), name='w1'),
+            'w2': tf.Variable(
+                tf.random_normal([1, 1, 64 * self.net_size_factor, 32 * self.net_size_factor], stddev=1e-3), name='w2'),
+            'w3': tf.Variable(tf.random_normal([5, 5, 32 * self.net_size_factor, self.c_dim], stddev=1e-3), name='w3')
+        }
+        self.biases = {
+            'b1': tf.Variable(tf.zeros([64 * self.net_size_factor]), name='b1'),
+            'b2': tf.Variable(tf.zeros([32 * self.net_size_factor]), name='b2'),
+            'b3': tf.Variable(tf.zeros([self.c_dim]), name='b3')
+        }
 
-    self.pred = self.model()
+        self.pred = self.model()
 
-    # Loss function (MSE)
-    self.loss = tf.reduce_mean(tf.reduce_sum(tf.square(self.labels - self.pred), reduction_indices=0))
+        # Loss function (MSE)
+        self.loss = tf.reduce_mean(tf.reduce_sum(tf.square(self.labels - self.pred), reduction_indices=0))
 
-    self.saver = tf.train.Saver()
+        self.saver = tf.train.Saver()
 
-  def train(self, config):
-    if config.is_train:
-      input_setup(self.sess, config)
-    else:
-      nx, ny = input_setup(self.sess, config)
+    def train(self, config):
+        if config.is_train:
+            input_setup(self.sess, config)
+        else:
+            nx, ny = input_setup(self.sess, config)
 
-    if config.is_train:     
-      data_dir = os.path.join('./{}'.format(config.checkpoint_dir), "train.h5")
-    else:
-      data_dir = os.path.join('./{}'.format(config.checkpoint_dir), "test.h5")
+        if config.is_train:
+            data_dir = os.path.join('./{}'.format(config.checkpoint_dir), "train.h5")
+        else:
+            data_dir = os.path.join('./{}'.format(config.checkpoint_dir), "test.h5")
 
-    train_data, train_label = read_data(data_dir)
+        train_data, train_label = read_data(data_dir)
 
-    # Stochastic gradient descent with the standard backpropagation
-    self.train_op = tf.train.GradientDescentOptimizer(config.learning_rate).minimize(self.loss)
+        # Stochastic gradient descent with the standard backpropagation
+        self.train_op = tf.train.GradientDescentOptimizer(config.learning_rate).minimize(self.loss)
 
-    tf.initialize_all_variables().run()
-    
-    counter = 0
-    start_time = time.time()
+        tf.initialize_all_variables().run()
 
-    if self.load(self.checkpoint_dir):
-      print(" [*] Load SUCCESS")
-    else:
-      print(" [!] Load failed...")
+        counter = 0
+        start_time = time.time()
 
-    if config.is_train:
-      print("Training...")
+        if self.load(self.checkpoint_dir):
+            print(" [*] Load SUCCESS")
+        else:
+            print(" [!] Load failed...")
 
-      for ep in xrange(config.epoch):
-        # Run by batch images
-        batch_idxs = len(train_data) // config.batch_size
-        for idx in xrange(0, batch_idxs):
-          batch_images = train_data[idx*config.batch_size : (idx+1)*config.batch_size]
-          batch_labels = train_label[idx*config.batch_size : (idx+1)*config.batch_size]
+        if config.is_train:
+            print("Training...")
 
-          counter += 1
-          _, err = self.sess.run([self.train_op, self.loss], feed_dict={self.images: batch_images, self.labels: batch_labels})
+            for ep in xrange(config.epoch):
+                # Run by batch images
+                batch_idxs = len(train_data) // config.batch_size
+                for idx in xrange(0, batch_idxs):
+                    batch_images = train_data[idx * config.batch_size: (idx + 1) * config.batch_size]
+                    batch_labels = train_label[idx * config.batch_size: (idx + 1) * config.batch_size]
 
-          if counter % 10 == 0:
-            print("Epoch: [%2d], step: [%2d], time: [%4.4f], loss: [%.8f]" \
-              % ((ep+1), counter, time.time()-start_time, err))
+                    counter += 1
+                    _, err = self.sess.run([self.train_op, self.loss],
+                                           feed_dict={self.images: batch_images, self.labels: batch_labels})
 
-          if counter % 500 == 0:
-            self.save(config.checkpoint_dir, counter)
+                    if counter % 10 == 0:
+                        print("Epoch: [%2d], step: [%2d], time: [%4.4f], loss: [%.8f]" \
+                              % ((ep + 1), counter, time.time() - start_time, err))
 
-    else:
-      print("Testing...")
+                    if counter % 500 == 0:
+                        self.save(config.checkpoint_dir, counter)
 
-      print "Train data shape", train_data.shape
-      print "Train label shape", train_label.shape
+        else:
+            print("Testing...")
 
-      result = self.pred.eval({self.images: train_data, self.labels: train_label})
+            print "Train data shape", train_data.shape
+            print "Train label shape", train_label.shape
 
-      print "Result shape", result.shape
-      print "nx ny", nx, ny
+            result = self.pred.eval({self.images: train_data, self.labels: train_label})
 
-      image = merge(result, [nx, ny])
-      original_image = merge(train_label, [nx, ny])
-      interpolation = down_upscale(modcrop(original_image, config.scale), scale=config.scale) 
+            print "Result shape", result.shape
+            print "nx ny", nx, ny
 
-      imsave(original_image, os.path.join(os.getcwd(), config.sample_dir, "original.bmp"), config.is_RGB )
-      imsave(interpolation, os.path.join(os.getcwd(), config.sample_dir, "interpolation.bmp"), config.is_RGB )
-      imsave(image, os.path.join(os.getcwd(), config.sample_dir, "srcnn.bmp"), config.is_RGB)
+            image = merge(result, [nx, ny])
+            original_image = merge(train_label, [nx, ny])
+            interpolation = down_upscale(modcrop(original_image, config.scale), scale=config.scale)
 
-  def scale_image(self, config):
+            imsave(original_image, os.path.join(os.getcwd(), config.sample_dir, "original.bmp"), config.is_RGB)
+            imsave(interpolation, os.path.join(os.getcwd(), config.sample_dir, "interpolation.bmp"), config.is_RGB)
+            imsave(image, os.path.join(os.getcwd(), config.sample_dir, "srcnn.bmp"), config.is_RGB)
 
-    train_data, nx, ny = read_image(config.input_image, config)
+    def scale_image(self, config):
 
-    tf.initialize_all_variables().run()
-    
-    start_time = time.time()
+        train_data, nx, ny = read_image(config.input_image, config)
 
-    if self.load(self.checkpoint_dir):
-      print(" [*] Load SUCCESS")
-    else:
-      print(" [!] Load failed...")
+        tf.initialize_all_variables().run()
 
-    print("Testing...")
+        start_time = time.time()
 
-    print "Train data shape", train_data.shape
+        if self.load(self.checkpoint_dir):
+            print(" [*] Load SUCCESS")
+        else:
+            print(" [!] Load failed...")
 
-    result = self.pred.eval({self.images: train_data})
+        print("Testing...")
 
-    print "Result shape", result.shape
-    print "nx ny", nx, ny
+        print "Train data shape", train_data.shape
 
-    image = merge(result, [nx, ny])
-    imsave(image, os.path.join(os.getcwd(), config.sample_dir, "srcnn.bmp"), config.is_RGB)
+        result = self.pred.eval({self.images: train_data})
 
-  def save(self, checkpoint_dir, step):
-    model_name = "SRCNN.model"
-    model_dir = "%s_%s" % ("srcnn", self.label_size)
-    checkpoint_dir = os.path.join(checkpoint_dir, model_dir)
+        print "Result shape", result.shape
+        print "nx ny", nx, ny
 
-    if not os.path.exists(checkpoint_dir):
-        os.makedirs(checkpoint_dir)
+        image = merge(result, [nx, ny])
+        imsave(image, os.path.join(os.getcwd(), config.sample_dir, "srcnn.bmp"), config.is_RGB)
 
-    self.saver.save(self.sess,
-                    os.path.join(checkpoint_dir, model_name),
-                    global_step=step)
+    def save(self, checkpoint_dir, step):
+        model_name = "SRCNN.model"
+        model_dir = "%s_%s" % ("srcnn", self.label_size)
+        checkpoint_dir = os.path.join(checkpoint_dir, model_dir)
 
-  def load(self, checkpoint_dir):
-    print(" [*] Reading checkpoints...")
-    model_dir = "%s_%s" % ("srcnn", self.label_size)
-    checkpoint_dir = os.path.join(checkpoint_dir, model_dir)
+        if not os.path.exists(checkpoint_dir):
+            os.makedirs(checkpoint_dir)
 
-    ckpt = tf.train.get_checkpoint_state(checkpoint_dir)
-    if ckpt and ckpt.model_checkpoint_path:
-        ckpt_name = os.path.basename(ckpt.model_checkpoint_path)
-        self.saver.restore(self.sess, os.path.join(checkpoint_dir, ckpt_name))
-        return True
-    else:
-        return False
+        self.saver.save(self.sess,
+                        os.path.join(checkpoint_dir, model_name),
+                        global_step=step)
+
+    def load(self, checkpoint_dir):
+        print(" [*] Reading checkpoints...")
+        model_dir = "%s_%s" % ("srcnn", self.label_size)
+        checkpoint_dir = os.path.join(checkpoint_dir, model_dir)
+
+        ckpt = tf.train.get_checkpoint_state(checkpoint_dir)
+        if ckpt and ckpt.model_checkpoint_path:
+            ckpt_name = os.path.basename(ckpt.model_checkpoint_path)
+            self.saver.restore(self.sess, os.path.join(checkpoint_dir, ckpt_name))
+            return True
+        else:
+            return False

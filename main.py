@@ -1,11 +1,9 @@
-from model import SRCNN
-from utils import input_setup
+import os
+import pprint
 
-import numpy as np
 import tensorflow as tf
 
-import pprint
-import os
+from model import SRCNN
 
 flags = tf.app.flags
 flags.DEFINE_integer("epoch", 10, "Number of epoch [10]")
