@@ -174,7 +174,7 @@ def read_image(input_image, config):
 
             sub_input_sequence.append(sub_input)
 
-    return sub_input_sequence, nx, ny
+    return np.asarray(sub_input_sequence), nx, ny
 
 
 def input_setup(sess, config):
