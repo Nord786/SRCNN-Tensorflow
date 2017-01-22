@@ -42,6 +42,12 @@ def down_upscale(image, scale):
     res[:,:,channel] = tmp
   return res
 
+def upscale(image, scale):
+  res = np.zeros([image.shape[0]*scale, image.shape[1]*scale, image.shape[2]])
+  for channel in range(res.shape[2]):
+    res[:,:,channel] = scipy.ndimage.interpolation.zoom(image[:,:,channel], scale, prefilter=False)
+  return res
+
 def down_upscale_new(image, scale):
   res = scipy.misc.imresize(image, 1.0/scale, interp='bicubic')
   res = scipy.misc.imresize(res, 1.0*scale, interp='bicubic')
@@ -134,6 +140,35 @@ def modcrop(image, scale=3):
     w = w - np.mod(w, scale)
     image = image[0:h, 0:w]
   return image
+
+def read_image(input_image, config):
+  """
+  Read one image file
+  """
+  data = [input_image]
+
+  sub_input_sequence = []
+  sub_label_sequence = []
+  padding = abs(config.image_size - config.label_size) / 2 # 6
+
+  image = imread(input_image, is_grayscale=config.c_dim == 1, is_RGB=config.is_RGB)
+  image = image / 255.
+  input_ = upscale(image, config.scale)
+
+  h, w, _ = input_.shape
+  # Numbers of sub-images in height and width of image are needed to compute merge operation.
+  nx = ny = 0 
+  for x in range(0, h-config.image_size+1, config.stride):
+    nx += 1; ny = 0
+    for y in range(0, w-config.image_size+1, config.stride):
+      ny += 1
+      sub_input = input_[x:x+config.image_size, y:y+config.image_size] # [33 x 33]
+        
+      sub_input = sub_input.reshape([config.image_size, config.image_size, config.c_dim])  
+
+      sub_input_sequence.append(sub_input)
+
+  return sub_input_sequence, nx, ny
 
 def input_setup(sess, config):
   """
