@@ -1,5 +1,6 @@
 import os
 import time
+import numpy as np
 
 import tensorflow as tf
 
@@ -151,7 +152,20 @@ class SRCNN(object):
 
         print "Train data shape", train_data.shape
 
-        result = self.pred.eval({self.images: train_data})
+        result = None
+        complete_items = 0
+        while complete_items < len(train_data):
+            batch_images = train_data[complete_items: min(complete_items + config.batch_size, len(train_data) )]
+            new_result = self.pred.eval({self.images: batch_images})
+            if result is None: result = new_result
+            else:
+                result = np.concatenate((result, new_result), axis=0)
+            print result.shape
+            complete_items += config.batch_size
+
+        end_time = time.time()
+
+        print "Spent time %d s" % (end_time - start_time)
 
         print "Result shape", result.shape
         print "nx ny", nx, ny

@@ -21,8 +21,6 @@ def read_data(path):
 
     Args:
       path: file path of desired file
-      data: '.h5' file format that contains train data values
-      label: '.h5' file format that contains train label values
     """
     with h5py.File(path, 'r') as hf:
         data = np.array(hf.get('data'))
@@ -59,11 +57,6 @@ def preprocess(path, scale, is_grayscale, is_RGB):
       (1) Read original image as YCbCr format (and grayscale as default)
       (2) Normalize
       (3) Apply image file with bicubic interpolation
-
-    Args:
-      path: file path of desired file
-      input_: image applied bicubic interpolation (low-resolution)
-      label_: image with original resolution (high-resolution)
     """
     image = imread(path, is_grayscale=is_grayscale, is_RGB=is_RGB)
     label_ = modcrop(image, scale)
@@ -150,21 +143,21 @@ def read_image(input_image, config):
     """
     Read one image file
     """
-    data = [input_image]
 
     sub_input_sequence = []
-    sub_label_sequence = []
-    padding = abs(config.image_size - config.label_size) / 2  # 6
 
     image = imread(input_image, is_grayscale=config.c_dim == 1, is_RGB=config.is_RGB)
-    image = image / 255.
+    image /= 255.
     input_ = upscale(image, config.scale)
+
+    print "Original image shape ", image.shape
+    print "Upscale image shape ", input_.shape
 
     h, w, _ = input_.shape
     # Numbers of sub-images in height and width of image are needed to compute merge operation.
     nx = ny = 0
     for x in range(0, h - config.image_size + 1, config.stride):
-        nx += 1;
+        nx += 1
         ny = 0
         for y in range(0, w - config.image_size + 1, config.stride):
             ny += 1
@@ -230,7 +223,7 @@ def input_setup(sess, config):
         # Numbers of sub-images in height and width of image are needed to compute merge operation.
         nx = ny = 0
         for x in range(0, h - config.image_size + 1, config.stride):
-            nx += 1;
+            nx += 1
             ny = 0
             for y in range(0, w - config.image_size + 1, config.stride):
                 ny += 1
