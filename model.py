@@ -86,8 +86,8 @@ class SRCNN(object):
         self.train_op = tf.train.GradientDescentOptimizer(config.learning_rate).minimize(self.loss)
 
         tf.initialize_all_variables().run()
-	#For tf 0.12.1
-	#tf.global_variables_initializer()
+        #For tf 0.12.1
+        #tf.global_variables_initializer()
 
         counter = 0
         start_time = time.time()

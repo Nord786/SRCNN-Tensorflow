@@ -46,8 +46,8 @@ def upscale(image, scale):
 
 
 def down_upscale_new(image, scale):
-    res = scipy.misc.imresize(image, 1.0 / scale, interp='bicubic')
-    res = scipy.misc.imresize(res, 1.0 * scale, interp='bicubic')
+    res = scipy.misc.imresize(image, 1.0 / scale, interp="bicubic")
+    res = scipy.misc.imresize(res, 1.0 * scale, interp="bicubic")
     return res
 
 
@@ -62,28 +62,24 @@ def preprocess(path, scale, is_grayscale, is_RGB):
     label_ = modcrop(image, scale)
 
     # Must be normalized
-    image = image / 255.
-    label_ = label_ / 255.
+    label_ /= 255.
 
     input_ = down_upscale(label_, scale)
 
     return input_, label_
 
 
-def prepare_data(sess, dataset):
+def prepare_data():
     """
     Args:
-      dataset: choose train dataset or test dataset
-
       For train dataset, output data would be ['.../t1.bmp', '.../t2.bmp', ..., '.../t99.bmp']
     """
     if FLAGS.is_train:
-        filenames = os.listdir(dataset)
-        data_dir = os.path.join(os.getcwd(), dataset)
-        data = glob.glob(os.path.join(data_dir, "*.bmp"))
+        data_dir = os.path.join(os.getcwd(), FLAGS.train_path)
     else:
-        data_dir = os.path.join(os.sep, os.path.join(os.getcwd(), dataset), "Set5")
-        data = glob.glob(os.path.join(data_dir, "*.bmp"))
+        data_dir = os.sep, os.path.join(os.getcwd(), FLAGS.test_path)
+
+    data = glob.glob(os.path.join(data_dir, FLAGS.image_suffix))
 
     return data
 
@@ -176,9 +172,9 @@ def input_setup(sess, config):
     """
     # Load data path
     if config.is_train:
-        data = prepare_data(sess, dataset="Train")
+        data = prepare_data()
     else:
-        data = prepare_data(sess, dataset="Test")
+        data = prepare_data()
         print data
 
     sub_input_sequence = []

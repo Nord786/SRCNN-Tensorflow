@@ -20,6 +20,9 @@ flags.DEFINE_boolean("is_train", True, "True for training, False for testing [Tr
 flags.DEFINE_boolean("is_RGB", False, "True for load images in RGB, False for YCbCr [False]")
 flags.DEFINE_integer("net_size_factor", 1, "Factor for scale network layers neurons from default size")
 flags.DEFINE_string("input_image", None, "Path for input image for upscale")
+flags.DEFINE_string("train_path", "Train/", "Path to folder with train images")
+flags.DEFINE_string("test_path", "Test/Set5/", "Path to folder with test images")
+flags.DEFINE_string("image_suffix", "*.bmp", "Images suffix in train_path[test_path]")
 FLAGS = flags.FLAGS
 
 pp = pprint.PrettyPrinter()
