@@ -5,6 +5,7 @@ Scipy version > 0.18 is needed, due to 'mode' option from scipy.misc.imread func
 import copy
 import glob
 import os
+import sys
 
 import h5py
 import numpy as np
@@ -77,8 +78,8 @@ def prepare_data():
     if FLAGS.is_train:
         data_dir = os.path.join(os.getcwd(), FLAGS.train_path)
     else:
-        data_dir = os.sep, os.path.join(os.getcwd(), FLAGS.test_path)
-
+        data_dir = os.path.join(os.getcwd(), FLAGS.test_path)
+    
     data = glob.glob(os.path.join(data_dir, FLAGS.image_suffix))
 
     return data
@@ -109,6 +110,8 @@ def imread(path, is_grayscale, is_RGB):
         # Make one channel image
         res = res.reshape(res.shape[0], res.shape[1], 1)
     else:
+        #print path
+        #print scipy.misc.imread(path, mode='RGB' if is_RGB else 'YCbCr')
         res = scipy.misc.imread(path, mode='RGB' if is_RGB else 'YCbCr').astype(np.float)
 
     return res
@@ -183,7 +186,12 @@ def input_setup(sess, config):
 
     if config.is_train:
         for i in xrange(len(data)):
-            input_, label_ = preprocess(data[i], config.scale, config.c_dim == 1, config.is_RGB)
+            if i % 100 == 0: sys.stderr.write("Complete preprocess %05d images\n" % i)
+            try:
+                input_, label_ = preprocess(data[i], config.scale, config.c_dim == 1, config.is_RGB)
+            except Exception as e:
+                sys.stderr.write("Exception on path %s\t%s\n" % (data[i], e) )
+                continue
 
             if len(input_.shape) == 3:
                 h, w, _ = input_.shape
